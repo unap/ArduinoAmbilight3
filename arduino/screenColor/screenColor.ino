@@ -16,7 +16,7 @@ CRGB leds[NUM_LEDS];
 // For checking time
 unsigned long checkTime = millis();
 
-int i, j;
+int i, j, r, g, b;
 
 // gamma correction lookup table for led brightness
 unsigned int gamma[] =
@@ -43,11 +43,21 @@ void setup()
 {
   FastLED.addLeds<NEOPIXEL, PIN>(leds, NUM_LEDS);
   Serial.begin(115200);
+  // rainbow "cylon" on startup
   for (i = 0; i < NUM_LEDS; i++)
   {
+    leds[i].setHue(i*(255/NUM_LEDS));
+    FastLED.show();
     leds[i] = CRGB::Black;
+    delay(5);
   }
-  leds[0] = CRGB::Green;
+  for (i = NUM_LEDS-1; i >= 0; i--)
+  {
+    leds[i].setHue(i*(255/NUM_LEDS));
+    FastLED.show();
+    leds[i] = CRGB::Black;
+    delay(5);
+  }
   FastLED.show();
 }
 
@@ -73,12 +83,18 @@ void loop()
     for (i = 0; i < NUM_LEDS; i++)
     {
       checkTime = millis();
+      
       while (!Serial.available());
       leds[i].r = gamma[Serial.read()];
+      
+      // tune down green and blue in proportion to brightness to make color warmer
       while (!Serial.available());
-      leds[i].g = gamma[Serial.read()];
+      g = gamma[Serial.read()];
+      leds[i].g = (int)((float)g*(-0.1/255*g+1));
+      
       while (!Serial.available());
-      leds[i].b = gamma[Serial.read()];
+      b = gamma[Serial.read()];
+      leds[i].b = (int)((float)b*(-0.15/255*b+1));
     }
     FastLED.show();
   }

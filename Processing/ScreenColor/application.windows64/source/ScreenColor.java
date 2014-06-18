@@ -275,6 +275,7 @@ public void keyPressed() {
       public void actionPerformed(ActionEvent e) {
           // Get frame bounds
           screenRect = sizingFrame.getBounds();
+          sizingFrame.dispose();
 
       }
     });
