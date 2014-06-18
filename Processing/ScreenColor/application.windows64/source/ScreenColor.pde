@@ -22,9 +22,25 @@ Serial port;
 Robot robby;
 Rectangle screenRect;
 
+// Number of leds on different sides of screen
+int topLedCount = 32;
+int sideLedCount = 21;
+int botLedCount = 7;
+
+// total number of leds
+int ledCount = topLedCount + (2*sideLedCount) + (2*botLedCount);
+
+byte[] serialData = new byte[ledCount*3 +1];
+
 // sreenshot scaled size
-int imgWidth = 96;
-int imgHeight = 60;
+int imgWidth = 384;
+int imgHeight = 240;
+
+// vertical/horizontal size of screen for one led
+int zoneWidth = imgWidth/topLedCount;
+int zoneHeight = imgHeight/sideLedCount;
+// opposite dimension
+int zoneSize = imgHeight/6;
 
 Boolean running;
 
@@ -40,7 +56,7 @@ void setup() {
   // we need a dispose handler to shut off the lights on exit
   //FIXME: isn't run on exit when exported, don't know why
   dh = new DisposeHandler(this);
-  port = new Serial(this, Serial.list()[0],9600); //set baud rate
+  port = new Serial(this, Serial.list()[0],115200); //set baud rate
   size(240, 150);
   if (frame != null) {
     frame.setResizable(true);
@@ -116,19 +132,33 @@ int[][] screenAvgColors() {
     //e.printStackTrace();
   }
 
-  // Get colors of all regions 
-  int[] topLeft = areaAvgColors(image, 0, 0, imgWidth/2, imgHeight/3);
-  int[] topRight = areaAvgColors(image, imgWidth/2, 0, imgWidth/2, imgHeight/3);
-  int[] left = areaAvgColors(image, 0, imgHeight/3, imgWidth/4, (imgHeight - imgHeight/3));
-  int[] right = areaAvgColors(image, (imgWidth - imgWidth/4), imgHeight/3, imgWidth/4, (imgHeight - imgHeight/3));
+  // total ledCount leds
+  int[][] colors = new int[ledCount][3];
 
-  // Write colors into one array
-  int[][] colors = new int[4][3];
+  // leds on bottom right, starting from bottom middle
+  for (int i = 0; i < botLedCount; i++) {
+    colors[i] = areaAvgColors(image, (imgWidth-(zoneWidth*(botLedCount-i))), (imgHeight-zoneSize), zoneWidth, zoneSize);
+  }
 
-  colors[0] = topLeft;
-  colors[1] = topRight;
-  colors[2] = left;
-  colors[3] = right;
+  // leds on right side, starting from bottom right corner
+  for (int i = 0; i < sideLedCount; i++) {
+    colors[i+botLedCount] = areaAvgColors(image, (imgWidth - zoneSize), (imgHeight - zoneHeight*(i+1)), zoneSize, zoneHeight);
+  }
+
+  // leds on top, starting from top right corner
+  for (int i = 0; i < topLedCount; i++) {
+    colors[i+botLedCount+sideLedCount] = areaAvgColors(image, (imgWidth - zoneWidth*(i+1)), 0, zoneWidth, zoneSize);
+  }
+
+  // leds on left side, starting from top left corner
+  for (int i = 0; i < sideLedCount; i++) {
+    colors[i+botLedCount+sideLedCount+topLedCount] = areaAvgColors(image, 0, zoneHeight*(i), zoneSize, zoneHeight);
+  }
+
+  // leds on bottom left, starting from bottom left
+  for (int i = 0; i < botLedCount; i++) {
+    colors[i+botLedCount+(2*sideLedCount)+topLedCount] = areaAvgColors(image, i*zoneWidth, (imgHeight-zoneSize), zoneWidth, zoneSize);
+  }
 
   return colors;
 }
@@ -142,36 +172,55 @@ void draw() {
     
   int[][] clrs = screenAvgColors();
 
+  int boxSize = height/7;
+  
+  serialData[0] = (byte)0xff;
+  int z = 1;
+  
   // Draw the rectangles in the window
-  color tl = color(clrs[0][0], clrs[0][1], clrs[0][2]);
-  color tr = color(clrs[1][0], clrs[1][1], clrs[1][2]);
-  color l = color(clrs[2][0], clrs[2][1], clrs[2][2]);
-  color r = color(clrs[3][0], clrs[3][1], clrs[3][2]);
+  color[] colors = new color[ledCount];
+  for(int i = 0; i < colors.length; i++)
+  {
+    colors[i] = color(clrs[i][0], clrs[i][1], clrs[i][2]);
+    serialData[z++] = (byte)clrs[i][0];
+    serialData[z++] = (byte)clrs[i][1];
+    serialData[z++] = (byte)clrs[i][2];
+  }
 
-  // left and right
-  fill(l);
-  rect(0, height/3, width/4, (height - height/3));
-  fill(r);
-  rect((width-width/4), height/3, width/4, (height - height/3));
+  // leds on right side, starting from bottom right corner
+  for (int i = 0; i < sideLedCount; i++) {
+    fill(colors[i+botLedCount]);
+    rect(width - boxSize, (height - (height/(float)sideLedCount)*(i+1)), boxSize, (height/sideLedCount));
+  }
 
-  // top left and top right
-  fill(tl);
-  rect(0,0,width/2, height/3);
-  fill(tr);
-  rect(width/2, 0, width/2, height/3);
+  // leds on left side, starting from top left corner
+  for (int i = 0; i < sideLedCount; i++) {
+    fill(colors[i+botLedCount+sideLedCount+topLedCount]);
+    rect(0, (height/(float)sideLedCount)*(i), boxSize, (height/sideLedCount));
+  }
 
-  // Send colors to Arduino, loop to reduce flickering caused by time overhead from calculating avg colors
-  for (int z = 5; z >= 0; z--) {
-    port.write(0xff); //marker for sync
-    // all 12 values one after the other
-    for (int[] clr : clrs) {
-      for (int val : clr) {
-        port.write(val);
-        //print(val + " ");
-      }
-    }
+  // leds on top, starting from top right corner
+  for (int i = 0; i < topLedCount; i++) {
+    fill(colors[i+botLedCount+sideLedCount]);
+    rect((width - (width/(float)topLedCount)*(i+1)), 0, (width/topLedCount), boxSize);
+  }
+
+  // leds on bottom right, starting from bottom middle
+  for (int i = 0; i < botLedCount; i++) {
+    fill(colors[i]);
+    rect(width-((width/(float)topLedCount)*(botLedCount-i)), (height-boxSize), (width/topLedCount), boxSize);
+  }
+
+  // leds on bottom left, starting from bottom left
+  for (int i = 0; i < botLedCount; i++) {
+    fill(colors[i+botLedCount+(2*sideLedCount)+topLedCount]);
+    rect(i*(width/(float)topLedCount), (height-boxSize), (width/topLedCount), boxSize);
   }
   
+  
+  // Send colors to Arduino
+  port.write(serialData);
+
 }
 
 /*
@@ -213,10 +262,12 @@ void keyPressed() {
       text("OFF", width/2, height/2);
       
       // send black
-      port.write(0xff);
-      for (int i = 0; i < 12; i++) {
-         port.write(0); 
+      serialData[0] = (byte)0xff;
+      for (int i = 1; i < ledCount*3+1; i++) {
+         serialData[i] = 0; 
       }
+      port.write(serialData);
+      
       running = false;
       noLoop();
     }
@@ -240,7 +291,7 @@ public class DisposeHandler {
   public void dispose()
   {
     port.write(0xff);    
-    for (int i = 0; i < 12; i++) {
+    for (int i = 0; i < ledCount*3; i++) {
       port.write(0); 
     }
   }
