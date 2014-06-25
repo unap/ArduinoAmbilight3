@@ -262,12 +262,7 @@ void keyPressed() {
       textAlign(CENTER, CENTER);
       text("OFF", width/2, height/2);
       
-      // send black
-      serialData[0] = (byte)0xff;
-      for (int i = 1; i < ledCount*3+1; i++) {
-         serialData[i] = 0; 
-      }
-      port.write(serialData);
+      sendBlack();
       
       running = false;
       noLoop();
@@ -276,6 +271,18 @@ void keyPressed() {
       running = true;
       loop();
     }
+  }
+}
+
+public void sendBlack() {
+  serialData[0] = (byte)0xff;
+  for (int i = 1; i < ledCount*3+1; i++) {
+    serialData[i] = 0; 
+  }
+  // send a few times to prevent off sync
+  for (int i = 0; i < 5; i++){
+    port.write(serialData);
+    delay(20);
   }
 }
 
@@ -291,9 +298,6 @@ public class DisposeHandler {
    
   public void dispose()
   {
-    port.write(0xff);    
-    for (int i = 0; i < ledCount*3; i++) {
-      port.write(0); 
-    }
+    sendBlack();
   }
 }
