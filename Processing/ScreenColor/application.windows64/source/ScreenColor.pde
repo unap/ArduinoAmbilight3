@@ -36,6 +36,9 @@ byte[] serialData = new byte[ledCount*3 +1];
 int imgWidth = 384;
 int imgHeight = 240;
 
+// led brightness 0-1
+double ledBrightness = .8;
+
 // vertical/horizontal size of screen for one led
 int zoneWidth = imgWidth/topLedCount;
 int zoneHeight = imgHeight/sideLedCount;
@@ -177,16 +180,18 @@ void draw() {
   serialData[0] = (byte)0xff;
   int z = 1;
   
-  // Draw the rectangles in the window
+  // Add colors to array
   color[] colors = new color[ledCount];
   for(int i = 0; i < colors.length; i++)
   {
     colors[i] = color(clrs[i][0], clrs[i][1], clrs[i][2]);
-    serialData[z++] = (byte)clrs[i][0];
-    serialData[z++] = (byte)clrs[i][1];
-    serialData[z++] = (byte)clrs[i][2];
+    serialData[z++] = (byte) (clrs[i][0]*ledBrightness);
+    serialData[z++] = (byte) (clrs[i][1]*ledBrightness);
+    serialData[z++] = (byte) (clrs[i][2]*ledBrightness);
   }
 
+  // Draw the colors in the window
+  
   // leds on right side, starting from bottom right corner
   for (int i = 0; i < sideLedCount; i++) {
     fill(colors[i+botLedCount]);
