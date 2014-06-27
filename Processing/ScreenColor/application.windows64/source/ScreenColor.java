@@ -221,9 +221,10 @@ public void draw() {
   for(int i = 0; i < colors.length; i++)
   {
     colors[i] = color(clrs[i][0], clrs[i][1], clrs[i][2]);
-    serialData[z++] = (byte) (clrs[i][0]*ledBrightness);
-    serialData[z++] = (byte) (clrs[i][1]*ledBrightness);
-    serialData[z++] = (byte) (clrs[i][2]*ledBrightness);
+    // dim bright colors more for balance or smth idk?
+    serialData[z++] = (byte) (clrs[i][0]*((ledBrightness-1)/255*clrs[i][0]+1));
+    serialData[z++] = (byte) (clrs[i][1]*((ledBrightness-1)/255*clrs[i][1]+1));
+    serialData[z++] = (byte) (clrs[i][2]*((ledBrightness-1)/255*clrs[i][2]+1));
   }
 
   // Draw the colors in the window

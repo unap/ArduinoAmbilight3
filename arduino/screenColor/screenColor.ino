@@ -90,11 +90,13 @@ void loop()
       // tune down green and blue in proportion to brightness to make color warmer
       while (!Serial.available());
       g = gamma[Serial.read()];
-      leds[i].g = (int)((float)g*(-0.1/255*g+1));
+      leds[i].g = g;
+      //leds[i].g = (int)((float)g*(-0.1/255*g+1));
       
       while (!Serial.available());
       b = gamma[Serial.read()];
-      leds[i].b = (int)((float)b*(-0.15/255*b+1));
+      leds[i].b = b;
+      //leds[i].b = (int)((float)b*(-0.15/255*b+1));
     }
     FastLED.show();
   }
