@@ -59,7 +59,7 @@ Robot robby;
 Rectangle screenRect;
 
 // Number of leds on different sides of screen
-int topLedCount = 32;
+int topLedCount = 36;
 int sideLedCount = 21;
 int botLedCount = 7;
 
@@ -69,8 +69,8 @@ int ledCount = topLedCount + (2*sideLedCount) + (2*botLedCount);
 byte[] serialData = new byte[ledCount*3 +1];
 
 // sreenshot scaled size
-int imgWidth = 384;
-int imgHeight = 240;
+int imgWidth = 512;
+int imgHeight = 288;
 
 // led brightness 0-1
 double ledBrightness = .8f;

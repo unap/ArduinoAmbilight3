@@ -8,7 +8,7 @@
 #define PIN 6
 
 // Number of leds
-#define NUM_LEDS 88
+#define NUM_LEDS 92
 
 // Array of leds
 CRGB leds[NUM_LEDS];
