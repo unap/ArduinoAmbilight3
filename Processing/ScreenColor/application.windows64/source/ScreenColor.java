@@ -84,6 +84,7 @@ int zoneSize = imgHeight/6;
 Boolean running;
 
 BufferedImage image;
+BufferedImage capture;
 Graphics graphics;
 DisposeHandler dh;
 
@@ -162,7 +163,7 @@ public int[][] screenAvgColors() {
   
   // Take screenshot and scale it
   try {
-    BufferedImage capture = robby.createScreenCapture(screenRect);
+    capture = robby.createScreenCapture(screenRect);
     graphics.drawImage(capture, 0, 0, imgWidth, imgHeight, null);
     //g.dispose();
     //ImageIO.write(image, "png", new File("scrnshot.png"));
