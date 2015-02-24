@@ -68,18 +68,21 @@ int ledCount = topLedCount + (2*sideLedCount) + (2*botLedCount);
 
 byte[] serialData = new byte[ledCount*3 +1];
 
+//screenshot scale
+int scale = 5;
+
 // sreenshot scaled size
-int imgWidth = 512;
-int imgHeight = 288;
+int imgWidth = 0;
+int imgHeight = 0;
 
 // led brightness 0-1
 double ledBrightness = .8f;
 
 // vertical/horizontal size of screen for one led
-int zoneWidth = imgWidth/topLedCount;
-int zoneHeight = imgHeight/sideLedCount;
+int zoneWidth = 0;
+int zoneHeight = 0;
 // opposite dimension
-int zoneSize = imgHeight/6;
+int zoneSize = 0;
 
 Boolean running;
 
@@ -111,11 +114,19 @@ public void setup() {
     exit();
   }
   
+  Dimension scrSize = Toolkit.getDefaultToolkit().getScreenSize();
+  imgWidth = scrSize.width/scale;
+  imgHeight = scrSize.height/scale;
+
+  zoneWidth = imgWidth/topLedCount;
+  zoneHeight = imgHeight/sideLedCount;
+
+  zoneSize = imgHeight/6;
+
   image = new BufferedImage(imgWidth, imgHeight, BufferedImage.TYPE_INT_RGB);
   graphics = image.createGraphics();
   
   //Default screenshot bounds to fullscreen.
-  Dimension scrSize = Toolkit.getDefaultToolkit().getScreenSize();
   screenRect = new Rectangle(0, 0, scrSize.width-5, scrSize.height-5); // i can't remember why i have the -5 but i'm not changing it
   
   //Make window have a minimum height
@@ -165,8 +176,9 @@ public int[][] screenAvgColors() {
   try {
     capture = robby.createScreenCapture(screenRect);
     graphics.drawImage(capture, 0, 0, imgWidth, imgHeight, null);
-    //g.dispose();
-    //ImageIO.write(image, "png", new File("scrnshot.png"));
+
+    //ImageIO.write(image, "png", new File("C:\\Users\\unap\\Dropbox\\github\\ArduinoAmbilight3\\Processing\\ScreenColor\\scaled.png"));
+
   }
   catch (Exception e) {
     //e.printStackTrace();
@@ -315,6 +327,9 @@ public void keyPressed() {
       loop();
     }
   }
+  else if (key == 'd' || key == 'D') { // detect black bars on D
+    detectBlackBars();
+  }
 }
 
 public void sendBlack() {
@@ -326,6 +341,62 @@ public void sendBlack() {
   for (int i = 0; i < 5; i++){
     port.write(serialData);
     delay(20);
+  }
+}
+
+public void detectBlackBars() {
+  try {
+    Dimension scrSize = Toolkit.getDefaultToolkit().getScreenSize();
+    BufferedImage scrnshot = robby.createScreenCapture(new Rectangle(0, 0, scrSize.width-5, scrSize.height-5));
+    
+    //ImageIO.write(scrnshot, "png", new File("C:\\Users\\unap\\Dropbox\\github\\ArduinoAmbilight3\\Processing\\ScreenColor\\scrnshot.png"));
+    
+    int h = scrnshot.getHeight();
+    int w = scrnshot.getWidth();
+
+    int startY = 0;
+    int startX = 0;
+    int stopY = h-1;
+    int stopX = w-1;
+
+    // maximum bar width
+    int maxW = 400;
+
+    //find y coordinate of first non black pixel in center of image
+    for (startY = 0; startY < maxW; startY++) {
+      int pixel = scrnshot.getRGB(w/2, startY);
+      if ((pixel & 0xff) != 0) {
+        break;
+      }
+    }
+    //find x coordinate of first non black pixel in center of image
+    for (startX = 0; startX < maxW; startX++) {
+      int pixel = scrnshot.getRGB(startX, h/2);
+      if ((pixel & 0xff) != 0) {
+        break;
+      }
+    }
+    //find y coordinate of last non black pixel in center of image
+    for (stopY = h-1; stopY >= h-maxW; stopY--) {
+      int pixel = scrnshot.getRGB(w/2, stopY);
+      if ((pixel & 0xff) != 0) {
+        break;
+      }
+    }
+    //find x coordinate of last non black pixel in center of image
+    for (stopX = w-1; stopX >= w-maxW; stopX--) {
+      int pixel = scrnshot.getRGB(stopX, h/2);
+      if ((pixel & 0xff) != 0) {
+        break;
+      }
+    }
+
+    // set screenshot x, y, width, height
+    screenRect.setRect(startX, startY, (stopX-startX), (stopY-startY));
+    //println("startY: "+startY+" - startX: "+startX+" - stopY: "+stopY+" - stopX: "+stopX);
+  }
+  catch (Exception e) {
+    //e.printStackTrace();
   }
 }
 
